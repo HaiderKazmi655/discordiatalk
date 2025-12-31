@@ -13,14 +13,42 @@ export default function AdminUsersPage() {
   const [onlyOnline, setOnlyOnline] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
+  const [error, setError] = useState<string>("");
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    setError("");
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("users")
+        .select("username, displayName, avatar, online")
+        .order("username", { ascending: true });
+      
+      if (fetchError) {
+        console.error("Error fetching users:", fetchError);
+        setError(`Error: ${fetchError.message}`);
+        setUsers([]);
+      } else if (Array.isArray(data)) {
+        setUsers(data as AdminUser[]);
+        if (data.length === 0) {
+          setError("No users found in database. Make sure users have registered.");
+        }
+      } else {
+        setError("Unexpected data format");
+        setUsers([]);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch users";
+      console.error("Error fetching users:", err);
+      setError(errorMessage);
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const { data } = await supabase.from("users").select("username, displayName, avatar, online").order("username", { ascending: true });
-        if (Array.isArray(data)) setUsers(data as AdminUser[]);
-      } catch {}
-    };
     fetchUsers();
     const channel = supabase
       .channel("admin_users_changes")
@@ -81,7 +109,14 @@ export default function AdminUsersPage() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-2xl font-bold">Users</div>
-            <div className="text-dc-text-muted">{onlineCount} online · {users.length} total</div>
+            <div className="text-dc-text-muted">
+              {loadingUsers ? "Loading..." : `${onlineCount} online · ${users.length} total`}
+            </div>
+            {error && (
+              <div className="text-sm mt-1 text-red-400">
+                {error}
+              </div>
+            )}
             {syncMessage && (
               <div className={`text-sm mt-1 ${syncMessage.startsWith("✓") ? "text-green-400" : "text-red-400"}`}>
                 {syncMessage}
@@ -100,8 +135,16 @@ export default function AdminUsersPage() {
               <span>Only online</span>
             </label>
             <button
+              onClick={fetchUsers}
+              disabled={loadingUsers}
+              className="text-sm px-3 py-2 bg-dc-bg-secondary text-white rounded border border-dc-bg-modifier hover:bg-dc-bg-tertiary disabled:opacity-50"
+              title="Refresh users list"
+            >
+              {loadingUsers ? "Loading..." : "Refresh"}
+            </button>
+            <button
               onClick={handleSyncFriends}
-              disabled={syncing}
+              disabled={syncing || users.length === 0}
               className="text-sm px-3 py-2 bg-dc-brand text-white rounded border border-dc-brand hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
               title="Sync all users as friends and create DMs"
             >
