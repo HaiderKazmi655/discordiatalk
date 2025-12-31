@@ -87,7 +87,17 @@ export const MeSidebar = () => {
                 
                 <div className="flex items-center justify-between text-xs font-bold text-dc-text-muted uppercase px-2 mb-2 mt-4 hover:text-dc-text-normal cursor-default group">
                     <span>Direct Messages</span>
-                    <span className="cursor-pointer text-dc-text-normal opacity-0 group-hover:opacity-100">+</span>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={fetchDms}
+                            disabled={loading}
+                            className="cursor-pointer text-dc-text-normal opacity-0 group-hover:opacity-100 hover:text-white"
+                            title="Refresh DM list"
+                        >
+                            ↻
+                        </button>
+                        <span className="cursor-pointer text-dc-text-normal opacity-0 group-hover:opacity-100">+</span>
+                    </div>
                 </div>
                 
                 {dms.map(dm => {
