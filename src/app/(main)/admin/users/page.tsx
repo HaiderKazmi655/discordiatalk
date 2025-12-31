@@ -61,7 +61,9 @@ export default function AdminUsersPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setSyncMessage("✓ All users synced as friends! Refresh the page to see DMs.");
+        setSyncMessage("✓ All users synced as friends! DMs should appear now.");
+        // Trigger refresh event for all MeSidebar components
+        window.dispatchEvent(new Event('friendsSynced'));
         setTimeout(() => setSyncMessage(""), 5000);
       } else {
         setSyncMessage("✗ Sync failed: " + (data.error || "Unknown error"));

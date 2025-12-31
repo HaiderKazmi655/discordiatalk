@@ -10,16 +10,30 @@ export const MeSidebar = () => {
     const { user } = useAuth();
     const pathname = usePathname();
     const [dms, setDms] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
+    const fetchDms = async () => {
         if (!user) return;
-        const fetchDms = async () => {
-            const { data } = await supabase.from('dms')
+        setLoading(true);
+        try {
+            const { data, error } = await supabase.from('dms')
                 .select('*')
                 .or(`pair_a.eq.${user.username},pair_b.eq.${user.username}`)
                 .order('time', { ascending: false });
-            if(data) setDms(data);
-        };
+            if (error) {
+                console.error('Error fetching DMs:', error);
+            } else if (data) {
+                setDms(data);
+            }
+        } catch (error) {
+            console.error('Error fetching DMs:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!user) return;
         fetchDms();
 
         // Subscribe to new DMs
@@ -35,6 +49,21 @@ export const MeSidebar = () => {
 
         return () => {
             supabase.removeChannel(channel);
+        };
+    }, [user]);
+
+    // Listen for sync completion events
+    useEffect(() => {
+        if (!user) return;
+        const handleSyncComplete = () => {
+            // Refresh DMs after sync
+            setTimeout(() => {
+                fetchDms();
+            }, 1000);
+        };
+        window.addEventListener('friendsSynced', handleSyncComplete);
+        return () => {
+            window.removeEventListener('friendsSynced', handleSyncComplete);
         };
     }, [user]);
 
