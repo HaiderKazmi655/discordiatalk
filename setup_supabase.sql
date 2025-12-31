@@ -4,7 +4,8 @@
 create extension if not exists "uuid-ossp";
 -- Count total users
 SELECT COUNT(*) FROM users;
-
+   SELECT * FROM dms 
+   WHERE pair_a = 'haider_1' OR pair_b = 'haider_1';
 -- Get all usernames
 SELECT username FROM users;
 
