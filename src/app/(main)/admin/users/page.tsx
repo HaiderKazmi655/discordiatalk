@@ -11,6 +11,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [search, setSearch] = useState("");
   const [onlyOnline, setOnlyOnline] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -50,6 +52,27 @@ export default function AdminUsersPage() {
 
   const onlineCount = users.filter(u => u.online).length;
 
+  const handleSyncFriends = async () => {
+    setSyncing(true);
+    setSyncMessage("");
+    try {
+      const response = await fetch("/api/sync-friends", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSyncMessage("✓ All users synced as friends! Refresh the page to see DMs.");
+        setTimeout(() => setSyncMessage(""), 5000);
+      } else {
+        setSyncMessage("✗ Sync failed: " + (data.error || "Unknown error"));
+      }
+    } catch (error) {
+      setSyncMessage("✗ Error: " + (error instanceof Error ? error.message : "Failed to sync"));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="flex-1 w-full h-full bg-dc-bg-primary text-white p-6 overflow-y-auto">
       <div className="max-w-5xl">
@@ -57,6 +80,11 @@ export default function AdminUsersPage() {
           <div>
             <div className="text-2xl font-bold">Users</div>
             <div className="text-dc-text-muted">{onlineCount} online · {users.length} total</div>
+            {syncMessage && (
+              <div className={`text-sm mt-1 ${syncMessage.startsWith("✓") ? "text-green-400" : "text-red-400"}`}>
+                {syncMessage}
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <input
@@ -69,6 +97,14 @@ export default function AdminUsersPage() {
               <input type="checkbox" checked={onlyOnline} onChange={e => setOnlyOnline(e.target.checked)} />
               <span>Only online</span>
             </label>
+            <button
+              onClick={handleSyncFriends}
+              disabled={syncing}
+              className="text-sm px-3 py-2 bg-dc-brand text-white rounded border border-dc-brand hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Sync all users as friends and create DMs"
+            >
+              {syncing ? "Syncing..." : "Sync All Friends"}
+            </button>
             <Link href="/channels/me" className="text-sm px-3 py-2 bg-dc-bg-secondary rounded border border-dc-bg-modifier hover:bg-dc-bg-tertiary">Back</Link>
           </div>
         </div>
